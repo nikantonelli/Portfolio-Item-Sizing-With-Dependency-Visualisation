@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>packed-circle-diagram</title>
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "Wed Jan 11 2017 19:50:15 GMT+0000 (GMT)";
+    </script>
+    
+    <script type="text/javascript" src="https://rally1.rallydev.com/apps/2.1/sdk-debug.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function() {
+            Rally.loadScripts(["src/javascript/App.js","src/javascript/d3.js"],
+	            function() {
+	                Rally.launchApp('packed-circle-diagram', {
+	                    name: 'packed-circle-diagram'
+	                })
+	            }, true);
+        });
+    </script>
+<link rel="stylesheet" type="text/css" href="src/style/app.css">
+
+</head>
+<body></body>
+</html>
