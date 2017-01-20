@@ -1,7 +1,8 @@
 Packed Circle Diagram
 =================
 ## Overview
-Visualisation of items into sizes based on leaf story plan estimates 
+Interactive (click and zoom) visualisation of items into sizes based on leaf story plan estimates. Dive into the item to see it's 
+children and details
 ![alt text](https://github.com/nikantonelli/packed-circle-diagram/blob/master/images/Untitled.png)
 ## License
 AppTemplate is released under the MIT license.  See the file [LICENSE](./LICENSE) for the full text.
