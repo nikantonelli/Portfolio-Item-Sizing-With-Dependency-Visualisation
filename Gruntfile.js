@@ -133,7 +133,6 @@ module.exports = function(grunt) {
         grunt.log.writeln('length: ' + string.length);
 // 
         grunt.template.addDelimiters('square-brackets','[%','%]');
-        
         var output = grunt.template.process(file, { data: { checksum: chk },  delimiters: 'square-brackets' });
         grunt.file.write(deploy_file,output);
         
@@ -147,7 +146,9 @@ module.exports = function(grunt) {
     grunt.registerTask('default', ['debug','build','ugly','apikey']);
     
     // (uses all the files in src/javascript)
-    grunt.registerTask('build', "Create the html for deployment",['template:prod','setChecksum']);
+    grunt.registerTask('build', "Create the html for deployment",['template:prod']);
+    // (uses all the files in src/javascript)
+    grunt.registerTask('checksum', "Create the checksum for deployment",['setChecksum']);
     // 
     grunt.registerTask('debug', "Create an html file that can run in its own tab", ['template:dev']);
     //
