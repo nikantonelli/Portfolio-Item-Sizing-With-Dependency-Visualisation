@@ -76,7 +76,14 @@ Ext.define('packed-circle-diagram', {
                     itemId: 'piType',
                     margin: '5 0 5 20',
                     listeners: {
-                        select: function() { gApp._addSizeSelector();}    //Jump off here to add portfolio size selector
+                        select: function() { 
+                            console.log('pitype select');
+                            gApp._enterMainApp();
+                        },    //Jump off here to add portfolio size selector
+                        afterrender: function() { 
+                            console.log('pitype afterrender');                        
+                            gApp._addSizeSelector();
+                        }
                     }
                 },
             ]
@@ -395,7 +402,7 @@ Ext.define('packed-circle-diagram', {
     _getCircleNodeClass: function(d) {
         var record = d.data.record;
         var vClass = d.parent ? d.children ? "node" : "nodeLeaf" : "nodeRoot";
-        var hv = gApp.down('#highlight').getValue()
+        var hv = gApp.down('#highlight').getValue();
         if (hv === gApp.self.DEPENDENCY_STRING) {
             if ( record && record.get("Predecessors") && record.get("Predecessors").Count)
                 vClass += " nodeError";
