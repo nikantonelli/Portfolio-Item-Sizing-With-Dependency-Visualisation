@@ -22,7 +22,44 @@ Ext.define('packed-circle-diagram', {
         'Project',
         'PercentDoneByStoryCount',
         'PercentDoneByStoryPlanEstimate',
-        'State'
+        'State',
+        'ScheduleState'
+    ],
+
+    FETCH_FIELDS:
+    [
+            'Name',
+            'FormattedID',
+            'Parent',
+            'DragAndDropRank',
+            'Children',
+            'ObjectID',
+            'Project',
+            'DisplayColor',
+            'Owner',
+            'Blocked',
+            'BlockedReason',
+            'Ready',
+            'Tags',
+            'Workspace',
+            'RevisionHistory',
+            'CreationDate',
+            'PercentDoneByStoryCount',
+            'PercentDoneByStoryPlanEstimate',
+            'State',
+            'ScheduleState',
+            'PlanEstimate',
+            'PreliminaryEstimate',
+            'PreliminaryEstimateValue',
+            'Description',
+            'Notes',
+            'Predecessors',
+            'Successors',
+            'UserStories',
+            'Tasks',
+            'WorkProduct',
+            'OrderIndex',   //Used to get the State field order index
+            'Value'
     ],
 
     portfolioChildField: function() { return 'Children';},
@@ -32,6 +69,12 @@ Ext.define('packed-circle-diagram', {
     taskSizingField: function() { return 'Estimate';},    //Might want to add a selector to choose 'ToDo' instead based on whether the field is a 'double'
     //No child field
     items: [
+        {
+            xtype: 'container',
+            itemId: 'headerBox',
+            layout: 'hbox',
+            height: 30
+        },
         {
             xtype: 'container',
             itemId: 'rootSurface',
@@ -66,28 +109,22 @@ Ext.define('packed-circle-diagram', {
         nodeList = null;
         //Add any useful selectors into this container ( which is inserted before the rootSurface )
         //Choose a point when all are 'ready' to jump off into the rest of the app
-        this.insert (0,{
-            xtype: 'container',
-            itemId: 'headerBox',
-            layout: 'hbox',
-            items: [
-                {
-                    xtype:  'rallyportfolioitemtypecombobox',
-                    itemId: 'piType',
-                    margin: '5 0 5 20',
-                    listeners: {
-                        select: function() { 
-                            console.log('pitype select');
-                            gApp._enterMainApp();
-                        },    //Jump off here to add portfolio size selector
-                        afterrender: function() { 
-                            console.log('pitype afterrender');                        
-                            gApp._addSizeSelector();
-                        }
+        gApp.down('#headerBox').add(
+
+            {
+                xtype:  'rallyportfolioitemtypecombobox',
+                itemId: 'piType',
+                margin: '5 0 5 20',
+                listeners: {
+                    select: function() { 
+                        gApp._enterMainApp();
+                    },    //Jump off here to add portfolio size selector
+                    afterrender: function() { 
+                        gApp._addSizeSelector();
                     }
-                },
-            ]
-        });
+                }            
+            }
+        );
     },
     _addSizeSelector: function() {
         if (!gApp.down('#piSize')){
@@ -113,7 +150,7 @@ Ext.define('packed-circle-diagram', {
                         },
                         listeners: {
                             select: function() { gApp._enterMainApp();},    //Jump off here to app
-                            afterrender: function() { gApp._enterMainApp();}    //Jump off here to app
+                            // afterrender: function() { gApp._enterMainApp();}    //Jump off here to app
                         }
                 }
             );
@@ -178,6 +215,16 @@ Ext.define('packed-circle-diagram', {
         //Get the piType we are starting with
         var piType = gApp.down('#piType');
         var piName = piType.getRawValue();
+        var filters = [];
+        var timeboxScope = gApp.getContext().getTimeboxScope();
+        if((timeboxScope && timeboxScope.type === 'release') &&
+            (piType.valueModels[0].data.Ordinal === 0)  //Only for lowest level item type
+             ){
+            filters.push(timeboxScope.getQueryFilter());
+        }
+
+        var fetchFields = gApp.FETCH_FIELDS;
+        fetchFields.push(gApp.portfolioSizingField());
          var rootStore = Ext.create('Rally.data.wsapi.Store', {
             model: 'portfolioitem/' + piName,
             context: {
@@ -185,6 +232,7 @@ Ext.define('packed-circle-diagram', {
                 projectScopeDown: false
             },
             autoLoad: true,
+            filters: filters,
             listeners: {
                 load: function(store, data, success) {
                     _.each(data, function(d) {
@@ -213,7 +261,7 @@ Ext.define('packed-circle-diagram', {
                     else Rally.ui.notify.Notifier.show({message: 'No items found'});
                 }
             },
-            fetch: ['FormattedID', 'Name', gApp.portfolioSizingField(), 'Children', 'UserStories', 'Predecessors', 'Successors'],
+            fetch: fetchFields
         });
     },
     _getNodeId: function(d){
@@ -234,12 +282,20 @@ Ext.define('packed-circle-diagram', {
         if ( gApp._getNodeChildField(record) === null ) {
             return;
         }
+        var filters = [];
+        var timeboxScope = gApp.getContext().getTimeboxScope();
+        if(timeboxScope) {
+            filters.push(timeboxScope.getQueryFilter());
+        }
 
         var name = record.get('FormattedID');
         var storyRoot = { 'name' : name, 'children': [ {'name': name, 'size':1}]};
-        var fetchFields = ['FormattedID', 'Predecessors', 'Successors', 'Name',  gApp._getChildSizingField(record), gApp._getNodeChildField(record)];
+        var fetchFields = gApp.FETCH_FIELDS;
+        fetchFields.push(gApp._getChildSizingField(record));
+
         record.getCollection(gApp._getNodeChildField(record)).load({
                 fetch: fetchFields,
+                filters: filters,
                 callback: function (records, operation, success) {
                     if (success && (records.length>0)){
                         _.each(records, function(r) {

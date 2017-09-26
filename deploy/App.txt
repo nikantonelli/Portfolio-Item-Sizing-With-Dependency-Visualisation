@@ -3,10 +3,10 @@
 <head>
     <title>packed-circle-diagram</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Tue Sep 26 2017 11:38:14 GMT+0100 (BST) -->
+    <!--  Build Date: Tue Sep 26 2017 15:19:18 GMT+0100 (BST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue Sep 26 2017 11:38:14 GMT+0100 (BST)";
+        var APP_BUILD_DATE = "Tue Sep 26 2017 15:19:18 GMT+0100 (BST)";
         var CHECKSUM = [%= checksum %];
     </script>
     
@@ -195,6 +195,12 @@ Ext.define('packed-circle-diagram', {
         //Get the piType we are starting with
         var piType = gApp.down('#piType');
         var piName = piType.getRawValue();
+        var filters = [];
+        var timeboxScope = gApp.getContext().getTimeboxScope();
+        if(timeboxScope) {
+            filters.push(timeboxScope.getQueryFilter());
+        }
+
          var rootStore = Ext.create('Rally.data.wsapi.Store', {
             model: 'portfolioitem/' + piName,
             context: {
@@ -202,6 +208,7 @@ Ext.define('packed-circle-diagram', {
                 projectScopeDown: false
             },
             autoLoad: true,
+            filters: filters,
             listeners: {
                 load: function(store, data, success) {
                     _.each(data, function(d) {
@@ -230,7 +237,7 @@ Ext.define('packed-circle-diagram', {
                     else Rally.ui.notify.Notifier.show({message: 'No items found'});
                 }
             },
-            fetch: ['FormattedID', 'Name', gApp.portfolioSizingField(), 'Children', 'UserStories', 'Predecessors'],
+            fetch: ['FormattedID', 'Name', gApp.portfolioSizingField(), 'Children', 'UserStories', 'Predecessors', 'Successors'],
         });
     },
     _getNodeId: function(d){
@@ -251,12 +258,18 @@ Ext.define('packed-circle-diagram', {
         if ( gApp._getNodeChildField(record) === null ) {
             return;
         }
+        var filters = [];
+        var timeboxScope = gApp.getContext().getTimeboxScope();
+        if(timeboxScope) {
+            filters.push(timeboxScope.getQueryFilter());
+        }
 
         var name = record.get('FormattedID');
         var storyRoot = { 'name' : name, 'children': [ {'name': name, 'size':1}]};
-        var fetchFields = ['FormattedID', 'Predecessors', 'Name',  gApp._getChildSizingField(record), gApp._getNodeChildField(record)];
+        var fetchFields = ['FormattedID', 'Predecessors', 'Successors', 'Name',  gApp._getChildSizingField(record), gApp._getNodeChildField(record)];
         record.getCollection(gApp._getNodeChildField(record)).load({
                 fetch: fetchFields,
+                filters: filters,
                 callback: function (records, operation, success) {
                     if (success && (records.length>0)){
                         _.each(records, function(r) {
@@ -287,7 +300,6 @@ Ext.define('packed-circle-diagram', {
                                     .attr("r", function(d) { return d.r ; })
                                     .style("fill", function(d) { return gApp._getNodeColour(d ); })
                                     .style("display", function(d) { return d.data.record ? "inline" : "none"; })
-//                                    .style("display", function(d) { return d.data.record ? "none" : "inline"; })
                                     .attr('id', function(d) {
                                         gApp._addChildren(d.data.record, d);
                                         return "circle-"+  gApp._getNodeId(d) ;
@@ -295,7 +307,6 @@ Ext.define('packed-circle-diagram', {
                                     .on('click', function (node, index, array) {
                                         var event = d3.event;
                                         event.stopPropagation();
-    //                                    gApp._addChildren(sd.data.record, sd);
                                         gApp._updateNodeList();
                                         if (focus !== node) gApp._zoom(node, event);
                                         if (event.shiftKey) gApp._nodePopup(node,index,array);
@@ -394,13 +405,9 @@ Ext.define('packed-circle-diagram', {
                 var event = d3.event;
                 event.stopPropagation();
                 //Now get the children for this artifact and add to the list
-//                var record = sn.data.record;
-//                gApp._addChildren(d.data.record, d);
                 //Update the node list
                 gApp._updateNodeList();
                 if (focus !== sn) gApp._zoom(sn, event);
-                //Set text visibility
-//                gApp._setTextVisibility(text);
                 if (event.shiftKey) gApp._nodePopup(sn,index,selected);
             })
             .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
@@ -419,13 +426,17 @@ Ext.define('packed-circle-diagram', {
     _getCircleNodeClass: function(d) {
         var record = d.data.record;
         var vClass = d.parent ? d.children ? "node" : "nodeLeaf" : "nodeRoot";
-        var hv = gApp.down('#highlight').getValue()
-        if (hv === gApp.self.DEPENDENCY_STRING) {
-            if ( record && record.get("Predecessors") && record.get("Predecessors").Count)
-                vClass += " nodeError";
-        }else if (hv === gApp.self.UNSIZED_ITEM_STRING) {
-            if ( record && (!record.get(gApp._getNodeSizingField(record))))
-            vClass += " nodeError";    
+        var hv = gApp.down('#highlight').getValue();
+        if (record && (record.get('_type') !== 'task')) {
+            if (hv === gApp.self.DEPENDENCY_STRING) {
+                if (record.get("Predecessors").Count) 
+                    vClass += " nodeError";
+                else if (record.get("Successors").Count)
+                    vClass += " nodeWarn";
+            } else if (hv === gApp.self.UNSIZED_ITEM_STRING) {
+                if (!record.get(gApp._getNodeSizingField(record)))
+                    vClass += " nodeError";    
+            }
         }
         return vClass;
     },
@@ -17000,15 +17011,22 @@ Object.defineProperty(exports, '__esModule', { value: true });
 circle.node {
   cursor: pointer;
 }
+circle.nodeWarn {
+  stroke: #ff9900;
+  stroke-width: 1.5px;
+}
 circle.nodeError {
-    stroke: red;
-    stroke-width: 1.5px;
+  stroke: #FF0000;
+  stroke-width: 1.5px;
 }
 circle.nodeRoot {
     fill: green;
 }
 circle.nodeLeaf {
   fill: grey;
+}
+circle.nodeHidden {
+  opacity: 0
 }
 .label {
   font: 8px "Helvetica Neue", Helvetica, Arial, sans-serif;
