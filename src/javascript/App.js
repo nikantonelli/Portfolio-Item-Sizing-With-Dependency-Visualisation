@@ -274,10 +274,10 @@ Ext.define('packed-circle-diagram', {
     //                                    gApp._addChildren(sd.data.record, sd);
                                         gApp._updateNodeList();
                                         if (focus !== node) gApp._zoom(node, event);
-                                        if (event.shiftKey) gApp._nodeMouseOver(node,index,array);
+                                        if (event.shiftKey) gApp._nodePopup(node,index,array);
                                     })
-                                    // .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
-                                    // .on("mouseout", function(node, index, array) { gApp._nodeMouseOut(node,index,array);})
+                                    .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
+                                    .on("mouseout", function(node, index, array) { gApp._nodeMouseOut(node,index,array);})
                                     .attr("class", function(d) {
                                         return gApp._getCircleNodeClass(d);
                                     });
@@ -306,55 +306,50 @@ Ext.define('packed-circle-diagram', {
         } else {
 
             if ( !node.card) {
-            //     var card = Ext.create('Rally.ui.cardboard.myCard', {
-            //         'record': node.data.record,
-            //         fields: gApp.CARD_DISPLAY_FIELD_LIST,
-            //         constrain: false,
-            //         width: gApp.MIN_COLUMN_WIDTH,
-            //         height: 'auto',
-            //         floating: true, //Allows us to control via the 'show' event
-            //         shadow: false,
-            //         showAge: true,
-            //         resizable: true,
-            //         listeners: {
-            //             show: function(card){
-            //                 //Move card to one side, preferably closer to the centre of the screen
-            //                 var xpos = array[index].getScreenCTM().e - gApp.MIN_COLUMN_WIDTH;
-            //                 var ypos = array[index].getScreenCTM().f;
-            //                 card.el.setLeftTop( (xpos - gApp.MIN_COLUMN_WIDTH) < 0 ? xpos + gApp.MIN_COLUMN_WIDTH : xpos - gApp.MIN_COLUMN_WIDTH, 
-            //                     (ypos + this.getSize().height)> gApp.getSize().height ? gApp.getSize().height - (this.getSize().height+20) : ypos);  //Tree is rotated
-            //             }
-            //         }
-            //     });
-            //     node.card = card;
-            // }
-            // node.card.show();
-            // debugger;
-            // Rally.ui.popover.PopoverFactory.bake({
-            //     record: node.data.record,
-            //     field: 'Dependencies',
-            //     target: node.card.getEl()
-            // });
-
-                var card = Ext.create('Rally.ui.popover.DependenciesPopover',
-                    {
-                        record: node.data.record,
-                        target: this.el,
-                        listeners: {
-                            afterrender: function(card){
-                                //Move card to one side, preferably closer to the centre of the screen
-                                var xpos = array[index].getScreenCTM().e - gApp.MIN_COLUMN_WIDTH;
-                                var ypos = array[index].getScreenCTM().f;
-                                card.el.setLeftTop( (xpos - gApp.MIN_COLUMN_WIDTH) < 0 ? xpos + gApp.MIN_COLUMN_WIDTH : xpos - gApp.MIN_COLUMN_WIDTH, 
-                                    (ypos + this.getSize().height)> gApp.getSize().height ? gApp.getSize().height - (this.getSize().height+20) : ypos);  //Tree is rotated
-                            }
+                var card = Ext.create('Rally.ui.cardboard.Card', {
+                    'record': node.data.record,
+                    fields: gApp.CARD_DISPLAY_FIELD_LIST,
+                    constrain: false,
+                    width: gApp.MIN_COLUMN_WIDTH,
+                    height: 'auto',
+                    floating: true, //Allows us to control via the 'show' event
+                    shadow: false,
+                    showAge: true,
+                    resizable: true,
+                    listeners: {
+                        show: function(card){
+                            //Move card to one side, preferably closer to the centre of the screen
+                            var xpos = array[index].getScreenCTM().e - gApp.MIN_COLUMN_WIDTH;
+                            var ypos = array[index].getScreenCTM().f;
+                            card.el.setLeftTop( (xpos - gApp.MIN_COLUMN_WIDTH) < 0 ? xpos + gApp.MIN_COLUMN_WIDTH : xpos - gApp.MIN_COLUMN_WIDTH, 
+                                (ypos + this.getSize().height)> gApp.getSize().height ? gApp.getSize().height - (this.getSize().height+20) : ypos);  //Tree is rotated
                         }
                     }
-                );
+                });
+                node.card = card;
             }
-//            node.card.show();
+            node.card.show();
         }
     },
+    
+    _nodePopup: function(node, index, array) {
+        var popover = Ext.create('Rally.ui.popover.DependenciesPopover',
+            {
+                record: node.data.record,
+                target: node.card.el,
+                listeners: {
+                    afterrender: function(card){
+                        //Move card to one side, preferably closer to the centre of the screen
+                        var xpos = array[index].getScreenCTM().e - gApp.MIN_COLUMN_WIDTH;
+                        var ypos = array[index].getScreenCTM().f;
+                        card.el.setLeftTop( (xpos - gApp.MIN_COLUMN_WIDTH) < 0 ? xpos + gApp.MIN_COLUMN_WIDTH : xpos - gApp.MIN_COLUMN_WIDTH, 
+                            (ypos + this.getSize().height)> gApp.getSize().height ? gApp.getSize().height - (this.getSize().height+20) : ypos);  //Tree is rotated
+                    }
+                }
+            }
+        );
+    },
+
     _runSVG: (function(root, diameter) {
         // re-find the svg
         var svg = d3.select('svg');
@@ -382,10 +377,10 @@ Ext.define('packed-circle-diagram', {
                 if (focus !== sn) gApp._zoom(sn, event);
                 //Set text visibility
 //                gApp._setTextVisibility(text);
-                if (event.shiftKey) gApp._nodeMouseOver(sn,index,selected);
+                if (event.shiftKey) gApp._nodePopup(sn,index,selected);
             })
-            // .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
-            // .on("mouseout", function(node, index, array) { gApp._nodeMouseOut(node,index,array);})
+            .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
+            .on("mouseout", function(node, index, array) { gApp._nodeMouseOut(node,index,array);})
             .attr("class", function(d) {  return gApp._getCircleNodeClass(d);})
                 .style("fill", function(d) { return gApp._getNodeColour(d); })
                 .style("display", function(d) { return d.data.record ? "inline" : "none"; });
@@ -444,6 +439,7 @@ Ext.define('packed-circle-diagram', {
         var transition = d3.transition()
             .duration(event && event.altkey?3000:750)
             .tween("zoom", function(d) {
+                if (!focus) return;
                 var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2]);
 //              var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + (circleMargin * rootDiameter)]);
               return function(t) { gApp._zoomTo(i(t), nodeList); };
