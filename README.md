@@ -1,8 +1,10 @@
 Packed Circle Diagram
 =================
 ## Overview
-Interactive (click and zoom) visualisation of items into sizes based on leaf story plan estimates. Dive into the item to see it's 
-children and details
+Interactive (click and zoom) visualisation of items into sizes based on leaf story plan, leaf story count or refined estimates. Dive into the item to see it's children. Items have borders coloured according to the "Emphasise on" selector, currently set to either highlight unsized items or to show items with dependencies. If you choose dependencies then the items with predecessors have red borders, if none, then those with successors have yellow borders.
+
+Use shift-Click on item to see dependency popup
+
 ![alt text](https://github.com/nikantonelli/packed-circle-diagram/blob/master/images/Untitled.png)
 ## License
 AppTemplate is released under the MIT license.  See the file [LICENSE](./LICENSE) for the full text.
