@@ -5,6 +5,8 @@
     "sdk": "2.1",
     "javascript": [
         "src/javascript/App.js",
+        "src/javascript/CFDCalc.js",
+        "src/javascript/CFDChart.js",
         "src/javascript/d3.js"
     ],
     "css": [

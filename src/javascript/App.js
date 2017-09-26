@@ -93,6 +93,12 @@ Ext.define('packed-circle-diagram', {
     ],
     launch: function() {
     },
+    onTimeboxScopeChange: function(newTimebox) {
+        this.callParent(arguments);
+        gApp.timeboxScope = newTimebox;
+        gApp._enterMainApp();
+    },
+
     _onElementResize: function(rs) {
         this._setSVGSize(rs);
         //TODO: Set zoom
@@ -105,6 +111,7 @@ Ext.define('packed-circle-diagram', {
     },
     //Entry point after creation of render box
     _onElementValid: function(rs) {
+        gApp.timeboxScope = gApp.getContext().getTimeboxScope();        
         //Create an empty list of svg items (global)
         nodeList = null;
         //Add any useful selectors into this container ( which is inserted before the rootSurface )
@@ -177,7 +184,6 @@ Ext.define('packed-circle-diagram', {
                         },
                         listeners: {
                             select: function() { gApp._enterMainApp();},    //Jump off here to app
-                            afterrender: function() { gApp._enterMainApp();}    //Jump off here to app
                         }
                 }
             );
@@ -216,11 +222,10 @@ Ext.define('packed-circle-diagram', {
         var piType = gApp.down('#piType');
         var piName = piType.getRawValue();
         var filters = [];
-        var timeboxScope = gApp.getContext().getTimeboxScope();
-        if((timeboxScope && timeboxScope.type === 'release') &&
+        if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') &&
             (piType.valueModels[0].data.Ordinal === 0)  //Only for lowest level item type
              ){
-            filters.push(timeboxScope.getQueryFilter());
+            filters.push(gApp.timeboxScope.getQueryFilter());
         }
 
         var fetchFields = gApp.FETCH_FIELDS;
@@ -283,9 +288,9 @@ Ext.define('packed-circle-diagram', {
             return;
         }
         var filters = [];
-        var timeboxScope = gApp.getContext().getTimeboxScope();
-        if(timeboxScope) {
-            filters.push(timeboxScope.getQueryFilter());
+        if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') && ((record.self.ordinal === 1)|| (record.self.ordinal === 0)))  //Only for lowest level item type and userstories        
+        {
+            filters.push(gApp.timeboxScope.getQueryFilter());
         }
 
         var name = record.get('FormattedID');
@@ -334,7 +339,239 @@ Ext.define('packed-circle-diagram', {
                                         var event = d3.event;
                                         event.stopPropagation();
                                         gApp._updateNodeList();
-                                        if (focus !== node) gApp._zoom(node, event);
+                                        if (focus !== node) { gApp._zoom(node, event);
+                                        } else {
+                                            var childField = node.data.record.hasField('Children')? 'Children' : 'UserStories';
+                                            var model = node.data.record.hasField('Children')? node.data.record.data.Children._type : 'UserStory';
+                                    
+                                            Ext.create('Rally.ui.dialog.Dialog', {
+                                                autoShow: true,
+                                                draggable: true,
+                                                closable: true,
+                                                width: 1100,
+                                                height: 800,
+                                                style: {
+                                                    border: "thick solid #000000"
+                                                },
+                                                overflowY: 'scroll',
+                                                overflowX: 'none',
+                                                record: node.data.record,
+                                                disableScroll: false,
+                                                model: model,
+                                                childField: childField,
+                                                title: 'Information for ' + node.data.record.get('FormattedID') + ': ' + node.data.record.get('Name'),
+                                                layout: 'hbox',
+                                                items: [
+                                                    {
+                                                        xtype: 'container',
+                                                        itemId: 'leftCol',
+                                                        width: 500,
+                                                    },
+                                                    // {
+                                                    //     xtype: 'container',
+                                                    //     itemId: 'middleCol',
+                                                    //     width: 400
+                                                    // },
+                                                    {
+                                                        xtype: 'container',
+                                                        itemId: 'rightCol',
+                                                        width: 580  //Leave 20 for scroll bar
+                                                    }
+                                                ],                                                    
+                                                nonRAIDStoreConfig: function() {
+                                                    if (this.record.hasField('c_RAIDType') ){
+                                                        switch (this.record.self.ordinal) {
+                                                            case 1:
+                                                                return  {
+                                                                    filters: {
+                                                                        property: 'c_RAIDType',
+                                                                        operator: '=',
+                                                                        value: ''
+                                                                    }
+                                                                };
+                                                            default:
+                                                                return {};
+                                                        }
+                                                    }
+                                                    else return {};
+                                                },
+                                                listeners: {
+                                                    afterrender: function() {
+                                                        this.down('#leftCol').add(
+                                                            {
+                                                                    xtype: 'rallycard',
+                                                                    record: this.record,
+                                                                    fields: gApp.CARD_DISPLAY_FIELD_LIST,
+                                                                    showAge: true,
+                                                                    resizable: true
+                                                            }
+                                                        );
+                                    
+                                                        if ( this.record.get('c_ProgressUpdate')){
+                                                            this.down('#leftCol').insert(1,
+                                                                {
+                                                                    xtype: 'component',
+                                                                    width: '100%',
+                                                                    autoScroll: true,
+                                                                    html: this.record.get('c_ProgressUpdate')
+                                                                }
+                                                            );
+                                                            this.down('#leftCol').insert(1,
+                                                                {
+                                                                    xtype: 'text',
+                                                                    text: 'Progress Update: ',
+                                                                    style: {
+                                                                        fontSize: '13px',
+                                                                        textTransform: 'uppercase',
+                                                                        fontFamily: 'ProximaNova,Helvetica,Arial',
+                                                                        fontWeight: 'bold'
+                                                                    },
+                                                                    margin: '0 0 10 0'
+                                                                }
+                                                            );
+                                                        }
+                                                        //This is specific to customer. Features are used as RAIDs as well.
+                                                        if ((this.record.self.ordinal === 1) && this.record.hasField('c_RAIDType')){
+                                                            var rai = this.down('#leftCol').add(
+                                                                {
+                                                                    xtype: 'rallypopoverchilditemslistview',
+                                                                    target: array[index],
+                                                                    record: this.record,
+                                                                    childField: this.childField,
+                                                                    addNewConfig: null,
+                                                                    gridConfig: {
+                                                                        title: '<b>Risks and Issues:</b>',
+                                                                        enableEditing: false,
+                                                                        enableRanking: false,
+                                                                        enableBulkEdit: false,
+                                                                        showRowActionsColumn: false,
+                                                                        storeConfig: this.RAIDStoreConfig(),
+                                                                        columnCfgs : [
+                                                                            'FormattedID',
+                                                                            'Name',
+                                                                            'c_RAIDType',
+                                                                            'State',
+                                                                            'c_RAGStatus',
+                                                                            'ScheduleState'
+                                                                        ]
+                                                                    },
+                                                                    model: this.model
+                                                                }
+                                                            );
+                                                            rai.down('#header').destroy();
+                                                       }
+                                                        var children = this.down('#leftCol').add(
+                                                            {
+                                                                xtype: 'rallypopoverchilditemslistview',
+                                                                target: array[index],
+                                                                record: this.record,
+                                                                childField: this.childField,
+                                                                addNewConfig: null,
+                                                                gridConfig: {
+                                                                    title: '<b>Children:</b>',
+                                                                    enableEditing: false,
+                                                                    enableRanking: false,
+                                                                    enableBulkEdit: false,
+                                                                    showRowActionsColumn: false,
+                                                                    storeConfig: this.nonRAIDStoreConfig(),
+                                                                    columnCfgs : [
+                                                                        'FormattedID',
+                                                                        'Name',
+                                                                        {
+                                                                            text: '% By Count',
+                                                                            dataIndex: 'PercentDoneByStoryCount'
+                                                                        },
+                                                                        {
+                                                                            text: '% By Est',
+                                                                            dataIndex: 'PercentDoneByStoryPlanEstimate'
+                                                                        },
+                                                                        'State',
+                                                                        'c_RAGSatus',
+                                                                        'ScheduleState'
+                                                                    ]
+                                                                },
+                                                                model: this.model
+                                                            }
+                                                        );
+                                                        children.down('#header').destroy();
+                                    
+                                                        var cfd = Ext.create('Rally.apps.CFDChart', {
+                                                            record: this.record,
+                                                            container: this.down('#rightCol')
+                                                        });
+                                                        cfd.generateChart();
+                                    
+                                                        //Now add predecessors and successors
+                                                        var preds = this.down('#rightCol').add(
+                                                            {
+                                                                xtype: 'rallypopoverchilditemslistview',
+                                                                target: array[index],
+                                                                record: this.record,
+                                                                childField: 'Predecessors',
+                                                                addNewConfig: null,
+                                                                gridConfig: {
+                                                                    title: '<b>Predecessors:</b>',
+                                                                    enableEditing: false,
+                                                                    enableRanking: false,
+                                                                    enableBulkEdit: false,
+                                                                    showRowActionsColumn: false,
+                                                                    columnCfgs : [
+                                                                    'FormattedID',
+                                                                    'Name',
+                                                                    {
+                                                                        text: '% By Count',
+                                                                        dataIndex: 'PercentDoneByStoryCount'
+                                                                    },
+                                                                    {
+                                                                        text: '% By Est',
+                                                                        dataIndex: 'PercentDoneByStoryPlanEstimate'
+                                                                    },
+                                                                    'State',
+                                                                    'c_RAGSatus',
+                                                                    'ScheduleState'
+                                                                    ]
+                                                                },
+                                                                model: this.model
+                                                            }
+                                                        );
+                                                        preds.down('#header').destroy();
+                                                        var succs = this.down('#rightCol').add(
+                                                            {
+                                                                xtype: 'rallypopoverchilditemslistview',
+                                                                target: array[index],
+                                                                record: this.record,
+                                                                childField: 'Successors',
+                                                                addNewConfig: null,
+                                                                gridConfig: {
+                                                                    title: '<b>Successors:</b>',
+                                                                    enableEditing: false,
+                                                                    enableRanking: false,
+                                                                    enableBulkEdit: false,
+                                                                    showRowActionsColumn: false,
+                                                                    columnCfgs : [
+                                                                    'FormattedID',
+                                                                    'Name',
+                                                                    {
+                                                                        text: '% By Count',
+                                                                        dataIndex: 'PercentDoneByStoryCount'
+                                                                    },
+                                                                    {
+                                                                        text: '% By Est',
+                                                                        dataIndex: 'PercentDoneByStoryPlanEstimate'
+                                                                    },
+                                                                    'State',
+                                                                    'c_RAGSatus',
+                                                                    'ScheduleState'
+                                                                    ]
+                                                                },
+                                                                model: this.model
+                                                            }
+                                                        );
+                                                        succs.down('#header').destroy();
+                                                    }
+                                                }
+                                            });
+                                        }
                                         if (event.shiftKey) gApp._nodePopup(node,index,array);
                                     })
                                     .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
