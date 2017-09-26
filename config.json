@@ -1,1 +1,13 @@
-{    "name": "packed-circle-diagram",    "className": "packed-circle-diagram",    "server": "https://rally1.rallydev.com",    "sdk": "2.1",    "javascript": [        "src/javascript/d3.js",        "src/javascript/App.js"    ],    "css": [        "src/style/app.css"    ]}
+{
+    "name": "packed-circle-diagram",
+    "className": "packed-circle-diagram",
+    "server": "https://rally1.rallydev.com",
+    "sdk": "2.1",
+    "javascript": [
+        "src/javascript/d3.js",
+        "src/javascript/App.js"
+    ],
+    "css": [
+        "src/style/app.css"
+    ]
+}

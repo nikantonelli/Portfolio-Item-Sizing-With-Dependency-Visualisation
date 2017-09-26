@@ -1,1 +1,30 @@
-.rootSurface {    background-color: cyan;}circle.node {  cursor: pointer;}circle.node:hover {  stroke: #000;  stroke-width: 1.5px;}circle.nodeError {    stroke: red;    stroke-width: 1.5px;}circle.nodeRoot {    fill: green;}circle.nodeLeaf {  fill: grey;}.label {  font: 8px "Helvetica Neue", Helvetica, Arial, sans-serif;  text-anchor: middle;  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;}.applink {    text-anchor: middle;    font-family: NotoSansBold,Helvetica,Arial;    color: #337ec6;    text-decoration: none;    font-size: 8px;    font-weight: normal;    text-align: left;}
+.rootSurface {
+    background-color: cyan;
+}
+circle.node {
+  cursor: pointer;
+}
+circle.nodeError {
+    stroke: red;
+    stroke-width: 1.5px;
+}
+circle.nodeRoot {
+    fill: green;
+}
+circle.nodeLeaf {
+  fill: grey;
+}
+.label {
+  font: 8px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  text-anchor: middle;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
+}
+.applink {
+    text-anchor: middle;
+    font-family: NotoSansBold,Helvetica,Arial;
+    color: #337ec6;
+    text-decoration: none;
+    font-size: 8px;
+    font-weight: normal;
+    text-align: left;
+}
