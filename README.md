@@ -5,6 +5,10 @@ Interactive (click and zoom) visualisation of items into sizes based on leaf sto
 
 Use shift-Click on item to see dependency popup
 
+When you have clicked on an item to make it the thing of focus, click on it again to get the big status box to come up (CFD diagram, children, etc, etc.)
+
+The app will also try to respect the timebox scope if oyu have it enabled for the page.
+
 ![alt text](https://github.com/nikantonelli/packed-circle-diagram/blob/master/images/Untitled.png)
 ## License
 AppTemplate is released under the MIT license.  See the file [LICENSE](./LICENSE) for the full text.
