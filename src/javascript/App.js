@@ -339,8 +339,9 @@ Ext.define('packed-circle-diagram', {
                 var card = Ext.create('Rally.ui.popover.DependenciesPopover',
                     {
                         record: node.data.record,
+                        target: this.el,
                         listeners: {
-                            show: function(card){
+                            afterrender: function(card){
                                 //Move card to one side, preferably closer to the centre of the screen
                                 var xpos = array[index].getScreenCTM().e - gApp.MIN_COLUMN_WIDTH;
                                 var ypos = array[index].getScreenCTM().f;
@@ -351,7 +352,7 @@ Ext.define('packed-circle-diagram', {
                     }
                 );
             }
-            node.card.show();
+//            node.card.show();
         }
     },
     _runSVG: (function(root, diameter) {
