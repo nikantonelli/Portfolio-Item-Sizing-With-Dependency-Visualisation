@@ -4,8 +4,8 @@
     "server": "https://rally1.rallydev.com",
     "sdk": "2.1",
     "javascript": [
-        "src/javascript/d3.js",
-        "src/javascript/App.js"
+        "src/javascript/App.js",
+        "src/javascript/d3.js"
     ],
     "css": [
         "src/style/app.css"

@@ -4,15 +4,22 @@
 circle.node {
   cursor: pointer;
 }
+circle.nodeWarn {
+  stroke: #ff9900;
+  stroke-width: 1.5px;
+}
 circle.nodeError {
-    stroke: red;
-    stroke-width: 1.5px;
+  stroke: #FF0000;
+  stroke-width: 1.5px;
 }
 circle.nodeRoot {
     fill: green;
 }
 circle.nodeLeaf {
   fill: grey;
+}
+circle.nodeHidden {
+  opacity: 0
 }
 .label {
   font: 8px "Helvetica Neue", Helvetica, Arial, sans-serif;

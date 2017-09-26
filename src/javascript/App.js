@@ -213,7 +213,7 @@ Ext.define('packed-circle-diagram', {
                     else Rally.ui.notify.Notifier.show({message: 'No items found'});
                 }
             },
-            fetch: ['FormattedID', 'Name', gApp.portfolioSizingField(), 'Children', 'UserStories', 'Predecessors'],
+            fetch: ['FormattedID', 'Name', gApp.portfolioSizingField(), 'Children', 'UserStories', 'Predecessors', 'Successors'],
         });
     },
     _getNodeId: function(d){
@@ -237,7 +237,7 @@ Ext.define('packed-circle-diagram', {
 
         var name = record.get('FormattedID');
         var storyRoot = { 'name' : name, 'children': [ {'name': name, 'size':1}]};
-        var fetchFields = ['FormattedID', 'Predecessors', 'Name',  gApp._getChildSizingField(record), gApp._getNodeChildField(record)];
+        var fetchFields = ['FormattedID', 'Predecessors', 'Successors', 'Name',  gApp._getChildSizingField(record), gApp._getNodeChildField(record)];
         record.getCollection(gApp._getNodeChildField(record)).load({
                 fetch: fetchFields,
                 callback: function (records, operation, success) {
@@ -270,7 +270,6 @@ Ext.define('packed-circle-diagram', {
                                     .attr("r", function(d) { return d.r ; })
                                     .style("fill", function(d) { return gApp._getNodeColour(d ); })
                                     .style("display", function(d) { return d.data.record ? "inline" : "none"; })
-//                                    .style("display", function(d) { return d.data.record ? "none" : "inline"; })
                                     .attr('id', function(d) {
                                         gApp._addChildren(d.data.record, d);
                                         return "circle-"+  gApp._getNodeId(d) ;
@@ -278,7 +277,6 @@ Ext.define('packed-circle-diagram', {
                                     .on('click', function (node, index, array) {
                                         var event = d3.event;
                                         event.stopPropagation();
-    //                                    gApp._addChildren(sd.data.record, sd);
                                         gApp._updateNodeList();
                                         if (focus !== node) gApp._zoom(node, event);
                                         if (event.shiftKey) gApp._nodePopup(node,index,array);
@@ -377,13 +375,9 @@ Ext.define('packed-circle-diagram', {
                 var event = d3.event;
                 event.stopPropagation();
                 //Now get the children for this artifact and add to the list
-//                var record = sn.data.record;
-//                gApp._addChildren(d.data.record, d);
                 //Update the node list
                 gApp._updateNodeList();
                 if (focus !== sn) gApp._zoom(sn, event);
-                //Set text visibility
-//                gApp._setTextVisibility(text);
                 if (event.shiftKey) gApp._nodePopup(sn,index,selected);
             })
             .on("mouseover", function(node, index, array) { gApp._nodeMouseOver(node,index,array);})
@@ -403,12 +397,16 @@ Ext.define('packed-circle-diagram', {
         var record = d.data.record;
         var vClass = d.parent ? d.children ? "node" : "nodeLeaf" : "nodeRoot";
         var hv = gApp.down('#highlight').getValue();
-        if (hv === gApp.self.DEPENDENCY_STRING) {
-            if ( record && record.get("Predecessors") && record.get("Predecessors").Count)
-                vClass += " nodeError";
-        }else if (hv === gApp.self.UNSIZED_ITEM_STRING) {
-            if ( record && (!record.get(gApp._getNodeSizingField(record))))
-            vClass += " nodeError";    
+        if (record && (record.get('_type') !== 'task')) {
+            if (hv === gApp.self.DEPENDENCY_STRING) {
+                if (record.get("Predecessors").Count) 
+                    vClass += " nodeError";
+                else if (record.get("Successors").Count)
+                    vClass += " nodeWarn";
+            } else if (hv === gApp.self.UNSIZED_ITEM_STRING) {
+                if (!record.get(gApp._getNodeSizingField(record)))
+                    vClass += " nodeError";    
+            }
         }
         return vClass;
     },
