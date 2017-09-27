@@ -309,7 +309,7 @@ Ext.define('packed-circle-diagram', {
                             gApp._zoomTo([root.x, root.y, root.r * 2 + (circleMargin * rootDiameter)], nodeList);
                         }
                         //If no data returned, be nice, let the user know!
-                        else Rally.ui.notify.Notifier.show({message: 'No items found'});
+                        else Rally.ui.notify.Notifier.show({message: 'No items found in project of type selected'});
                     }
                 },
                 fetch: fetchFields
@@ -320,7 +320,7 @@ Ext.define('packed-circle-diagram', {
             var collectionConfig = {
                 fetch: fetchFields,
                 callback: function(data, operation, success) {
-                    if (!success) Rally.ui.notify.Notifier.show({message: 'No items found on milestone: ' + selected.get('Name')});
+                    if (!success) Rally.ui.notify.Notifier.show({message: 'Failed to fetch items for milestone: ' + selected.get('Name')});
                     _.each(data, function(d) {
                         var s;
                         //Decide what data you want for these things
@@ -344,7 +344,7 @@ Ext.define('packed-circle-diagram', {
                         gApp._zoomTo([root.x, root.y, root.r * 2 + (circleMargin * rootDiameter)], nodeList);
                     }
                     //If no data returned, be nice, let the user know!
-                    else Rally.ui.notify.Notifier.show({message: 'No items found in project of type selected'});
+                    else Rally.ui.notify.Notifier.show({message: 'No items found on milestone selected'});
                 }
             };
             selected.getCollection('Artifacts').load( collectionConfig );
@@ -773,9 +773,9 @@ Ext.define('packed-circle-diagram', {
         var hv = gApp.down('#highlight').getValue();
         if (record && (record.get('_type') !== 'task')) {
             if (hv === gApp.self.DEPENDENCY_STRING) {
-                if (record.get("Predecessors").Count) 
+                if (record.raw.Predecessors.Count) 
                     vClass += " nodeError";
-                else if (record.get("Successors").Count)
+                else if (record.raw.Successors.Count)
                     vClass += " nodeWarn";
             } else if (hv === gApp.self.UNSIZED_ITEM_STRING) {
                 if (!record.get(gApp._getNodeSizingField(record)))
