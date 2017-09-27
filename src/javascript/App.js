@@ -59,7 +59,7 @@ Ext.define('packed-circle-diagram', {
             'Tasks',
             'WorkProduct',
             'OrderIndex',   //Used to get the State field order index
-            'Value'
+            'Value',
     ],
 
     portfolioChildField: function() { return 'Children';},
@@ -93,6 +93,25 @@ Ext.define('packed-circle-diagram', {
     ],
     launch: function() {
     },
+
+    getSettingsFields: function () {
+        return [
+            {
+                name: 'useMilestones',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Use Milestones as source: ',
+                value: false
+            }
+        ]
+    },
+
+    onSettingsUpdate: function(settings){
+        this.callParent(arguments);
+        //Remove old items and restart
+        this.down('#headerBox').removeAll();
+        gApp._onElementValid(gApp.down('#rootSurface'));
+    },
+
     onTimeboxScopeChange: function(newTimebox) {
         this.callParent(arguments);
         gApp.timeboxScope = newTimebox;
@@ -116,22 +135,47 @@ Ext.define('packed-circle-diagram', {
         nodeList = null;
         //Add any useful selectors into this container ( which is inserted before the rootSurface )
         //Choose a point when all are 'ready' to jump off into the rest of the app
-        gApp.down('#headerBox').add(
 
-            {
-                xtype:  'rallyportfolioitemtypecombobox',
-                itemId: 'piType',
-                margin: '5 0 5 20',
-                listeners: {
-                    select: function() { 
-                        gApp._enterMainApp();
-                    },    //Jump off here to add portfolio size selector
-                    afterrender: function() { 
-                        gApp._addSizeSelector();
-                    }
-                }            
-            }
-        );
+        if (!gApp.getSetting('useMilestones')){
+            gApp.down('#headerBox').add(
+
+                {
+                    xtype:  'rallyportfolioitemtypecombobox',
+                    itemId: 'piType',
+                    margin: '5 0 5 20',
+                    listeners: {
+                        select: function() { 
+                            gApp._enterMainApp();
+                        },    //Jump off here to add portfolio size selector
+                        afterrender: function() { 
+                            gApp._addSizeSelector();
+                        }
+                    }            
+                }
+            );
+        } else {
+            var fetchFields = gApp.FETCH_FIELDS;
+            fetchFields = fetchFields.concat(['TargetProject', 'TargetDate', 'Artifacts']);
+            gApp.down('#headerBox').add(
+
+                {
+                    xtype:  'rallymilestonecombobox',
+                    itemId: 'milestoneSelected',
+                    storeConfig: {
+                        fetch: fetchFields
+                    },
+                    margin: '5 0 5 20',
+                    listeners: {
+                        select: function() { 
+                            gApp._enterMainApp();
+                        },    //Jump off here to add portfolio size selector
+                        afterrender: function() { 
+                            gApp._addSizeSelector();
+                        }
+                    }            
+                }
+            );
+        }
     },
     _addSizeSelector: function() {
         if (!gApp.down('#piSize')){
@@ -218,28 +262,65 @@ Ext.define('packed-circle-diagram', {
         //Create the initial dataset in this form
         // var root = { 'name' : 'root', 'children': [ { 'name' : 'child1','size': 200 },{ 'name' : 'child2','children' : [{  etc. etc. }] }]};
         var topRoot = { 'name' : 'root', 'children': [ ]};
-        //Get the piType we are starting with
-        var piType = gApp.down('#piType');
-        var piName = piType.getRawValue();
         var filters = [];
-        if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') &&
-            (piType.valueModels[0].data.Ordinal === 0)  //Only for lowest level item type
-             ){
-            filters.push(gApp.timeboxScope.getQueryFilter());
-        }
-
         var fetchFields = gApp.FETCH_FIELDS;
         fetchFields.push(gApp.portfolioSizingField());
-         var rootStore = Ext.create('Rally.data.wsapi.Store', {
-            model: 'portfolioitem/' + piName,
-            context: {
-                projectScopeUp: false,
-                projectScopeDown: false
-            },
-            autoLoad: true,
-            filters: filters,
-            listeners: {
-                load: function(store, data, success) {
+
+        if ( !gApp.getSetting('useMilestones')){
+            //Get the piType we are starting with
+            var piType = gApp.down('#piType');
+            var piName = piType.getRawValue();
+
+            if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') &&
+                (piType.valueModels[0].data.Ordinal === 0)  //Only for lowest level item type
+                ){
+                filters.push(gApp.timeboxScope.getQueryFilter());
+            }
+            var rootStore = Ext.create('Rally.data.wsapi.Store', {
+                model: 'portfolioitem/' + piName,
+                context: {
+                    projectScopeUp: false,
+                    projectScopeDown: false
+                },
+                autoLoad: true,
+                filters: filters,
+                listeners: {
+                    load: function(store, data, success) {
+                        _.each(data, function(d) {
+                            var s;
+                            //Decide what data you want for these things
+                            topRoot.children.push(gApp._createNodeForArtefact(d));
+                        });
+                        //If we had some data, then set up to call _runSVG
+                        if (topRoot.children.length) {
+                            //Define root in hierarchy
+                            var root = d3.hierarchy(topRoot)
+                                .sum(function(d) { return d.size; })
+                                .sort(function(a, b) { return b.value - a.value; });
+                            //Define this as the item of interest
+                            focus = root;
+                            //Add all the stuff to SVG
+                            gApp._runSVG(root, rootDiameter);
+                            //Add a 'return to the beginning' ability
+                            svg.on("click", function() { gApp._zoom(root, d3.event); });
+                            //If any added refresh the 'node' handle
+                            gApp._updateNodeList();
+                            //Now get the view to the right place
+                            gApp._zoomTo([root.x, root.y, root.r * 2 + (circleMargin * rootDiameter)], nodeList);
+                        }
+                        //If no data returned, be nice, let the user know!
+                        else Rally.ui.notify.Notifier.show({message: 'No items found'});
+                    }
+                },
+                fetch: fetchFields
+            });
+        }else {
+            //Get the Artefacts collection from the Milestone
+            var selected = gApp.down('#milestoneSelected').valueModels[0];
+            var collectionConfig = {
+                fetch: fetchFields,
+                callback: function(data, operation, success) {
+                    if (!success) Rally.ui.notify.Notifier.show({message: 'No items found on milestone: ' + selected.get('Name')});
                     _.each(data, function(d) {
                         var s;
                         //Decide what data you want for these things
@@ -249,8 +330,8 @@ Ext.define('packed-circle-diagram', {
                     if (topRoot.children.length) {
                         //Define root in hierarchy
                         var root = d3.hierarchy(topRoot)
-                              .sum(function(d) { return d.size; })
-                              .sort(function(a, b) { return b.value - a.value; });
+                            .sum(function(d) { return d.size; })
+                            .sort(function(a, b) { return b.value - a.value; });
                         //Define this as the item of interest
                         focus = root;
                         //Add all the stuff to SVG
@@ -263,11 +344,11 @@ Ext.define('packed-circle-diagram', {
                         gApp._zoomTo([root.x, root.y, root.r * 2 + (circleMargin * rootDiameter)], nodeList);
                     }
                     //If no data returned, be nice, let the user know!
-                    else Rally.ui.notify.Notifier.show({message: 'No items found'});
+                    else Rally.ui.notify.Notifier.show({message: 'No items found in project of type selected'});
                 }
-            },
-            fetch: fetchFields
-        });
+            };
+            selected.getCollection('Artifacts').load( collectionConfig );
+        }
     },
     _getNodeId: function(d){
         return d.data.record? d.data.record.get('FormattedID'): Ext.id();
