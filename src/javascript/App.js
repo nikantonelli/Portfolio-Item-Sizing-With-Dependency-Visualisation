@@ -198,6 +198,7 @@ Ext.define('packed-circle-diagram', {
                                 { 'name': 'Leaf Story Plan Estimate', 'value': 'LeafStoryPlanEstimateTotal'},
                                 { 'name': 'Leaf Story Count', 'value': 'LeafStoryCount'},
                                 { 'name': 'Refined Estimate', 'value': 'RefinedEstimate'},
+                                { 'name': 'Preliminary Estimate', 'value': 'PreliminaryEstimateValue' }
                             ],
                         },
                         listeners: {
@@ -567,6 +568,8 @@ Ext.define('packed-circle-diagram', {
                                                                             text: '% By Est',
                                                                             dataIndex: 'PercentDoneByStoryPlanEstimate'
                                                                         },
+                                                                        'Project',
+                                                                        'PredecessorsAndSuccessors',
                                                                         'State',
                                                                         'c_RAGSatus',
                                                                         'ScheduleState'
