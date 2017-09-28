@@ -23,7 +23,8 @@ Ext.define('packed-circle-diagram', {
         'PercentDoneByStoryCount',
         'PercentDoneByStoryPlanEstimate',
         'State',
-        'ScheduleState'
+        'ScheduleState',
+        'PredecessorsAndSuccessors'
     ],
 
     FETCH_FIELDS:
@@ -51,6 +52,7 @@ Ext.define('packed-circle-diagram', {
             'PlanEstimate',
             'PreliminaryEstimate',
             'PreliminaryEstimateValue',
+            'PredecessorsAndSuccessors',
             'Description',
             'Notes',
             'Predecessors',
@@ -100,9 +102,9 @@ Ext.define('packed-circle-diagram', {
                 name: 'useMilestones',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Use Milestones as source: ',
-                value: false
+                value: true
             }
-        ]
+        ];
     },
 
     onSettingsUpdate: function(settings){
@@ -154,8 +156,7 @@ Ext.define('packed-circle-diagram', {
                 }
             );
         } else {
-            var fetchFields = gApp.FETCH_FIELDS;
-            fetchFields = fetchFields.concat(['TargetProject', 'TargetDate', 'Artifacts']);
+            var fetchFields = gApp.FETCH_FIELDS.concat(['TargetProject', 'TargetDate', 'Artifacts']);
             gApp.down('#headerBox').add(
 
                 {
@@ -263,8 +264,7 @@ Ext.define('packed-circle-diagram', {
         // var root = { 'name' : 'root', 'children': [ { 'name' : 'child1','size': 200 },{ 'name' : 'child2','children' : [{  etc. etc. }] }]};
         var topRoot = { 'name' : 'root', 'children': [ ]};
         var filters = [];
-        var fetchFields = gApp.FETCH_FIELDS;
-        fetchFields.push(gApp.portfolioSizingField());
+        var fetchFields = gApp.FETCH_FIELDS.concat([gApp.portfolioSizingField()]);
 
         if ( !gApp.getSetting('useMilestones')){
             //Get the piType we are starting with
@@ -277,10 +277,11 @@ Ext.define('packed-circle-diagram', {
                 filters.push(gApp.timeboxScope.getQueryFilter());
             }
             var rootStore = Ext.create('Rally.data.wsapi.Store', {
-                model: 'portfolioitem/' + piName,
+                model: 'PortfolioItem/' + piName,
                 context: {
-                    projectScopeUp: false,
-                    projectScopeDown: false
+                    projectScopeUp: gApp.getContext().getProjectScopeUp(),
+                    
+                    projectScopeDown: gApp.getContext().getProjectScopeDown()
                 },
                 autoLoad: true,
                 filters: filters,
@@ -316,13 +317,14 @@ Ext.define('packed-circle-diagram', {
             });
         }else {
             //Get the Artefacts collection from the Milestone
-            var selected = gApp.down('#milestoneSelected').valueModels[0];
+            var selected = gApp.down('#milestoneSelected').getRecord();
             var collectionConfig = {
                 fetch: fetchFields,
                 callback: function(data, operation, success) {
                     if (!success) Rally.ui.notify.Notifier.show({message: 'Failed to fetch items for milestone: ' + selected.get('Name')});
                     _.each(data, function(d) {
                         var s;
+                        d.data = d.raw;     //Fix Snafu with using artifactstore
                         //Decide what data you want for these things
                         topRoot.children.push(gApp._createNodeForArtefact(d));
                     });
@@ -376,10 +378,9 @@ Ext.define('packed-circle-diagram', {
 
         var name = record.get('FormattedID');
         var storyRoot = { 'name' : name, 'children': [ {'name': name, 'size':1}]};
-        var fetchFields = gApp.FETCH_FIELDS;
-        fetchFields.push(gApp._getChildSizingField(record));
-
-        record.getCollection(gApp._getNodeChildField(record)).load({
+        var fetchFields = gApp.FETCH_FIELDS.concat([gApp._getChildSizingField(record)]);
+        var childField = gApp._getNodeChildField(record);
+        record.getCollection(childField).load({
                 fetch: fetchFields,
                 filters: filters,
                 callback: function (records, operation, success) {
@@ -422,8 +423,8 @@ Ext.define('packed-circle-diagram', {
                                         gApp._updateNodeList();
                                         if (focus !== node) { gApp._zoom(node, event);
                                         } else {
-                                            var childField = node.data.record.hasField('Children')? 'Children' : 'UserStories';
-                                            var model = node.data.record.hasField('Children')? node.data.record.data.Children._type : 'UserStory';
+                                            var childField = gApp._hasField(node.data.record,'Children')? 'Children' : 'UserStories';
+                                            var model = gApp._hasField(node.data.record,'Children')? node.data.record.raw.Children._type : 'UserStory';
                                     
                                             Ext.create('Rally.ui.dialog.Dialog', {
                                                 autoShow: true,
@@ -460,7 +461,7 @@ Ext.define('packed-circle-diagram', {
                                                     }
                                                 ],                                                    
                                                 nonRAIDStoreConfig: function() {
-                                                    if (this.record.hasField('c_RAIDType') ){
+                                                    if (gApp._hasField(this.record,'c_RAIDType') ){
                                                         switch (this.record.self.ordinal) {
                                                             case 1:
                                                                 return  {
@@ -512,7 +513,7 @@ Ext.define('packed-circle-diagram', {
                                                             );
                                                         }
                                                         //This is specific to customer. Features are used as RAIDs as well.
-                                                        if ((this.record.self.ordinal === 1) && this.record.hasField('c_RAIDType')){
+                                                        if ((this.record.self.ordinal === 1) && gApp._hasField(this.record,'c_RAIDType')){
                                                             var rai = this.down('#leftCol').add(
                                                                 {
                                                                     xtype: 'rallypopoverchilditemslistview',
@@ -849,10 +850,15 @@ Ext.define('packed-circle-diagram', {
         return colour(d.depth);
 //        return (d.data.record && d.data.record.get(gApp._getNodeSizingField(d.data.record))) ? colour(d.depth) : "white";
     },
+
+    _isPortfolioItem: function ( d ) {
+        return d.get('_type').toLowerCase().startsWith('portfolioitem/');
+    },
+
     _getNodeSizingField: function ( d) {
         //Assume we are at Task level (ignoring Test Sets, etc.,)
         var sizingField = gApp.taskSizingField;
-        if (d.isPortfolioItem()) {
+        if (gApp._isPortfolioItem(d)) {
             //Only user portfolioitems have the field 'UserStories'.
             sizingField = gApp.portfolioSizingField;
         }
@@ -866,10 +872,10 @@ Ext.define('packed-circle-diagram', {
         //Assume we are at Task level (ignoring Test Sets, etc.,)
         var childSizingField = function() { return null;};
 
-        if (d.isPortfolioItem()) {
+        if (gApp._isPortfolioItem(d)) {
             //Only user portfolioitems have the field 'UserStories'.
             childSizingField = gApp.portfolioSizingField;
-            if (d.hasField(gApp.featureChildField())){
+            if (gApp._hasField(d, gApp.featureChildField())){
                 childSizingField = gApp.storySizingField;
             }
         }
@@ -886,13 +892,17 @@ Ext.define('packed-circle-diagram', {
         }
         return sizingUnit;
     },
+    _hasField: function(d, field) {
+        return (field in d.raw) ? true : false;
+    },
+
     _getNodeChildField: function ( d) {
         //Assume we are at Task level (ignoring Test Sets, etc.,)
         var childField = function() { return null;};
-        if (d.isPortfolioItem()) {
+        if (gApp._isPortfolioItem(d)) {
             childField = gApp.portfolioChildField;
             //Only lowest level portfolioitems have the field 'UserStories'.
-            if (d.hasField(gApp.featureChildField())){
+            if (gApp._hasField(d, gApp.featureChildField())){
                 childField = gApp.featureChildField;
             }
         }
