@@ -207,6 +207,7 @@
                                 { 'name': 'Leaf Story Plan Estimate', 'value': 'LeafStoryPlanEstimateTotal'},
                                 { 'name': 'Leaf Story Count', 'value': 'LeafStoryCount'},
                                 { 'name': 'Refined Estimate', 'value': 'RefinedEstimate'},
+                                { 'name': 'Preliminary Estimate', 'value': 'PreliminaryEstimateValue' }
                             ],
                         },
                         listeners: {
@@ -434,7 +435,7 @@
                                         } else {
                                             var childField = gApp._hasField(node.data.record,'Children')? 'Children' : 'UserStories';
                                             var model = gApp._hasField(node.data.record,'Children')? node.data.record.raw.Children._type : 'UserStory';
-                                    
+                                    debugger;
                                             Ext.create('Rally.ui.dialog.Dialog', {
                                                 autoShow: true,
                                                 draggable: true,
@@ -583,7 +584,7 @@
                                                                         'ScheduleState'
                                                                     ]
                                                                 },
-                                                                model: this.model
+                                                               model: model
                                                             }
                                                         );
                                                         children.down('#header').destroy();
@@ -619,6 +620,7 @@
                                                                         text: '% By Est',
                                                                         dataIndex: 'PercentDoneByStoryPlanEstimate'
                                                                     },
+                                                                    'Parent',
                                                                     'State',
                                                                     'c_RAGSatus',
                                                                     'ScheduleState'
@@ -652,6 +654,7 @@
                                                                         text: '% By Est',
                                                                         dataIndex: 'PercentDoneByStoryPlanEstimate'
                                                                     },
+                                                                    'Parent',
                                                                     'State',
                                                                     'c_RAGSatus',
                                                                     'ScheduleState'
@@ -17834,7 +17837,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
     <style type="text/css">
         .rootSurface {
-  background-color: cyan;
+  background-color: #DDFCFC;
 }
 circle.node {
   cursor: pointer;

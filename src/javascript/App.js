@@ -102,7 +102,7 @@ Ext.define('packed-circle-diagram', {
                 name: 'useMilestones',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Use Milestones as source: ',
-                value: true
+                value: false
             }
         ];
     },
@@ -426,7 +426,7 @@ Ext.define('packed-circle-diagram', {
                                         } else {
                                             var childField = gApp._hasField(node.data.record,'Children')? 'Children' : 'UserStories';
                                             var model = gApp._hasField(node.data.record,'Children')? node.data.record.raw.Children._type : 'UserStory';
-                                    
+                                    debugger;
                                             Ext.create('Rally.ui.dialog.Dialog', {
                                                 autoShow: true,
                                                 draggable: true,
@@ -575,7 +575,7 @@ Ext.define('packed-circle-diagram', {
                                                                         'ScheduleState'
                                                                     ]
                                                                 },
-                                                                model: this.model
+                                                               model: model
                                                             }
                                                         );
                                                         children.down('#header').destroy();
@@ -611,6 +611,7 @@ Ext.define('packed-circle-diagram', {
                                                                         text: '% By Est',
                                                                         dataIndex: 'PercentDoneByStoryPlanEstimate'
                                                                     },
+                                                                    'Parent',
                                                                     'State',
                                                                     'c_RAGSatus',
                                                                     'ScheduleState'
@@ -644,6 +645,7 @@ Ext.define('packed-circle-diagram', {
                                                                         text: '% By Est',
                                                                         dataIndex: 'PercentDoneByStoryPlanEstimate'
                                                                     },
+                                                                    'Parent',
                                                                     'State',
                                                                     'c_RAGSatus',
                                                                     'ScheduleState'
