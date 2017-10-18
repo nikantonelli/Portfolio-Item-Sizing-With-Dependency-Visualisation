@@ -104,15 +104,15 @@ Ext.define('packed-circle-diagram', {
     launch: function() {
     },
 
-    getSettingsFields: function () {
-        return [
-            {
-                name: 'useMilestones',
-                xtype: 'rallycheckboxfield',
-                fieldLabel: 'Use Milestones as source (IN DEVELOPMENT): '
-            }
-        ];
-    },
+    // getSettingsFields: function () {
+    //     return [
+    //         {
+    //             name: 'useMilestones',
+    //             xtype: 'rallycheckboxfield',
+    //             fieldLabel: 'Use Milestones as source (IN DEVELOPMENT): '
+    //         }
+    //     ];
+    // },
 
     onSettingsUpdate: function(settings){
         this.callParent(arguments);
