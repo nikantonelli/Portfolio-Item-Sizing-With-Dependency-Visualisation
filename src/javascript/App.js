@@ -11,6 +11,14 @@ Ext.define('packed-circle-diagram', {
         DEPENDENCY_STRING: 'dependencies'
     },
 
+    config: {
+        defaultSettings: {
+            useMilestones: false,
+            hideArchived: false,
+            showDependencies: false
+        }
+    },
+
     MIN_COLUMN_WIDTH:   200,       
     
     CARD_DISPLAY_FIELD_LIST:
@@ -101,8 +109,7 @@ Ext.define('packed-circle-diagram', {
             {
                 name: 'useMilestones',
                 xtype: 'rallycheckboxfield',
-                fieldLabel: 'Use Milestones as source: ',
-                value: false
+                fieldLabel: 'Use Milestones as source (IN DEVELOPMENT): '
             }
         ];
     },
@@ -157,7 +164,7 @@ Ext.define('packed-circle-diagram', {
             );
         } else {
             var fetchFields = gApp.FETCH_FIELDS.concat(['TargetProject', 'TargetDate', 'Artifacts']);
-            gApp.down('#headerBox').add(
+            var mbox = gApp.down('#headerBox').add(
 
                 {
                     xtype:  'rallymilestonecombobox',
@@ -167,18 +174,21 @@ Ext.define('packed-circle-diagram', {
                     },
                     margin: '5 0 5 20',
                     listeners: {
-                        select: function() { 
-                            gApp._enterMainApp();
-                        },    //Jump off here to add portfolio size selector
-                        afterrender: function() { 
-                            gApp._addSizeSelector();
+                        boxready: function() { 
+                            this.on('setvalue', gApp._addSizeSelector);
+                        //     gApp._enterMainApp();
+                        // },    //Jump off here to add portfolio size selector
+                        // setvalue: function() { 
+                        //     gApp._addSizeSelector();
                         }
                     }            
                 }
             );
+//            Ext.util.Observable.capture( mbox, function(event) { console.log('event', event, arguments);});
         }
     },
     _addSizeSelector: function() {
+        console.log('Adding size selector');
         if (!gApp.down('#piSize')){
             gApp.down('#headerBox').add(
                 {
@@ -198,12 +208,13 @@ Ext.define('packed-circle-diagram', {
                                 { 'name': 'Leaf Story Plan Estimate', 'value': 'LeafStoryPlanEstimateTotal'},
                                 { 'name': 'Leaf Story Count', 'value': 'LeafStoryCount'},
                                 { 'name': 'Refined Estimate', 'value': 'RefinedEstimate'},
-                                { 'name': 'Preliminary Estimate', 'value': 'PreliminaryEstimateValue' }
+                                { 'name': 'Preliminary Estimate', 'value': 'PreliminaryEstimateValue' },
+                                { 'name': 'Value Score', 'value' : 'ValueScore'}
                             ],
                         },
                         listeners: {
                             select: function() { gApp._enterMainApp();},    //Jump off here to app
-                            // afterrender: function() { gApp._enterMainApp();}    //Jump off here to app
+                            afterrender: function() { gApp._enterMainApp();}    //Jump off here to app
                         }
                 }
             );
@@ -238,6 +249,8 @@ Ext.define('packed-circle-diagram', {
 
     //Continuation point after selectors ready/changed
     _enterMainApp: function() {
+
+        console.log('Entering main app...');
         //Clear the decks as we are dealing with a new type
         if (nodeList) nodeList.remove();
         //Make surface the size available in the viewport (minus the selectors and margins)
@@ -784,7 +797,7 @@ Ext.define('packed-circle-diagram', {
         gApp._setTextVisibility(text);
         return false;
     }),
-    
+
     _getCircleNodeClass: function(d) {
         var record = d.data.record;
         var vClass = d.parent ? d.children ? "node" : "nodeLeaf" : "nodeRoot";
